@@ -1,0 +1,276 @@
+openapi: 3.0.0
+info:
+  title: Product Management API
+  version: 1.0.0
+  description: API pour la gestion des produits, avec authentification JWT, panier et liste d'envies.
+
+servers:
+  - url: http://localhost:3000
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Product:
+      type: object
+      required:
+        - code
+        - name
+        - price
+        - quantity
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: number
+        internalReference:
+          type: string
+        shellId:
+          type: integer
+        inventoryStatus:
+          type: string
+          enum: [INSTOCK, LOWSTOCK, OUTOFSTOCK]
+        rating:
+          type: number
+        createdAt:
+          type: integer
+        updatedAt:
+          type: integer
+
+    Account:
+      type: object
+      required: [username, firstname, email, password]
+      properties:
+        username:
+          type: string
+        firstname:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+
+    Login:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /account:
+    post:
+      summary: Créer un nouveau compte
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        201:
+          description: Compte créé avec succès
+        400:
+          description: Données invalides
+
+  /token:
+    post:
+      summary: Authentifier l'utilisateur
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        200:
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        401:
+          description: Identifiants incorrects
+
+  /products:
+    get:
+      summary: Récupérer tous les produits
+      tags: [Products]
+      responses:
+        200:
+          description: Liste des produits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+    post:
+      summary: Créer un nouveau produit
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        201:
+          description: Produit créé
+        403:
+          description: Accès refusé (non admin)
+
+  /products/{id}:
+    get:
+      summary: Récupérer un produit par ID
+      tags: [Products]
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Produit trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        404:
+          description: Produit non trouvé
+
+    patch:
+      summary: Modifier un produit
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        200:
+          description: Produit mis à jour
+        403:
+          description: Accès refusé (non admin)
+        404:
+          description: Produit non trouvé
+
+    delete:
+      summary: Supprimer un produit
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        204:
+          description: Produit supprimé
+        403:
+          description: Accès refusé (non admin)
+        404:
+          description: Produit non trouvé
+
+  /cart:
+    get:
+      summary: Récupérer le panier de l'utilisateur
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Panier utilisateur
+
+    post:
+      summary: Ajouter un produit au panier
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+                quantity:
+                  type: integer
+      responses:
+        200:
+          description: Produit ajouté au panier
+
+  /wishlist:
+    get:
+      summary: Récupérer la wishlist de l'utilisateur
+      tags: [Wishlist]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Liste d'envies utilisateur
+
+    post:
+      summary: Ajouter un produit à la wishlist
+      tags: [Wishlist]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+      responses:
+        200:
+          description: Produit ajouté à la wishlist
